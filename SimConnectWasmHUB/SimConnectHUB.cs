@@ -20,7 +20,7 @@ namespace SimConnectWasmHUB
         private bool _bConnected = false;
 
         // Event handler to show results in textbox
-        public event EventHandler<string> LogResult;
+        public event EventHandler<string> LogResult = null;
 
         // List of registered variables
         private List<VarData> Vars = new List<VarData>();
