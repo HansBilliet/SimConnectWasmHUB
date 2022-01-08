@@ -568,9 +568,10 @@ namespace SimConnectWasmHUB
                 case 'A':
                     try
                     {
-                        vInList.oValue = Cast(dValue, vInList.oValue.GetType());
+//                        vInList.oValue = Cast(dValue, vInList.oValue.GetType());
 
-                        _oSimConnect.SetDataOnSimObject((SIMCONNECT_DEFINITION_ID)vInList.uDefineID, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, vInList.oValue);
+//                        _oSimConnect.SetDataOnSimObject((SIMCONNECT_DEFINITION_ID)vInList.uDefineID, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, vInList.oValue);
+                        _oSimConnect.SetDataOnSimObject((SIMCONNECT_DEFINITION_ID)vInList.uDefineID, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, dValue);
 
                         LogResult?.Invoke(this, $"{vInList} SimVar value set to {sValue}");
                     }
