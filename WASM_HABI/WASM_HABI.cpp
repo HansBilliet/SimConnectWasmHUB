@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include <vector>
+#include <chrono>
 
 #include "WASM_HABI.h"
 #include <iostream>
@@ -49,12 +50,38 @@ enum eEvents
 {
 	EVENT_FLIGHT_LOADED,
 	EVENT_FRAME,
+	//EVENT_1SEC,
+	//EVENT_FLIGHTLOADED,
+	//EVENT_AIRCRAFTLOADED
 };
 
 enum eRequestID
 {
 	CMD
 };
+
+//uint64_t millis()
+//{
+//	uint64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::
+//		now().time_since_epoch()).count();
+//	return ms;
+//}
+//
+//// Get time stamp in microseconds.
+//uint64_t micros()
+//{
+//	uint64_t us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::
+//		now().time_since_epoch()).count();
+//	return us;
+//}
+//
+//// Get time stamp in nanoseconds.
+//uint64_t nanos()
+//{
+//	uint64_t ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::
+//		now().time_since_epoch()).count();
+//	return ns;
+//}
 
 bool FindLVar(char* sLVar, LVar *pLVar)
 {
@@ -156,19 +183,108 @@ void CALLBACK MyDispatchProc(SIMCONNECT_RECV* pData, DWORD cbData, void* pContex
 {
 	switch (pData->dwID)
 	{
-		case SIMCONNECT_RECV_ID_EVENT:
-		{
-			SIMCONNECT_RECV_EVENT* evt = (SIMCONNECT_RECV_EVENT*)pData;
+		//case SIMCONNECT_RECV_ID_EVENT:
+		//{
+		//	SIMCONNECT_RECV_EVENT* evt = (SIMCONNECT_RECV_EVENT*)pData;
 
-			switch (evt->uEventID)
-			{
-				default:
-					fprintf(stderr, "%s: MyDispatchProc > SIMCONNECT_RECV_ID_EVENT - Event: UNKNOWN %u\n", WASM_Name, evt->uEventID);
-					break; // end case default
-			}
+		//	switch (evt->uEventID)
+		//	{
+		//		case EVENT_1SEC:
+		//		{
+		//			// L:A32NX_EFIS_L_OPTION, enum
+		//			// L:A32NX_EFIS_R_OPTION, enum
+		//			// K:FUELSYSTEM_PUMP_TOGGLE
+		//			// K:A32NX.FCU_HDG_INC
 
-			break; // end case SIMCONNECT_RECV_ID_EVENT
-		}
+		//			uint64_t tStart;
+		//			uint64_t tEnd;
+		//			FLOAT64 val = 0;
+		//			ID varID;
+		//			PCSTRINGZ sCompiled;
+		//			UINT32 uCompiledSize;
+
+		//			if (LVars.size() != 0)
+		//			{
+
+		//				// MEASUREMENT 1 - using execute_calculator_code
+
+		//				// start of measurement
+		//				tStart = micros();
+
+		//				// perform action
+		//				for (auto& lv : LVars)
+		//				{
+		//					for (int i = 0; i < 500; i++)
+		//					{
+		//						execute_calculator_code("(L:A32NX_EFIS_L_OPTION)", &val, (SINT32*)0, (PCSTRINGZ*)0);
+		//					}
+		//				}
+
+		//				// end of measurment
+		//				tEnd = micros();
+
+		//				fprintf(stderr, "%s: MEAS1: 500 times %u variables - Time: %llu - Last val: %f\n", WASM_Name, LVars.size(), tEnd - tStart, val);
+
+		//				// MEASUREMENT 2 - using pre-compiled calculator code
+
+		//				// start of measurement
+		//				tStart = micros();
+
+		//				// perform action
+		//				for (auto& lv : LVars)
+		//				{
+		//					gauge_calculator_code_precompile(&sCompiled, &uCompiledSize, "(L:A32NX_EFIS_L_OPTION)");
+
+		//					for (int i = 0; i < 500; i++)
+		//					{
+		//						execute_calculator_code(sCompiled, &val, (SINT32*)0, (PCSTRINGZ*)0);
+		//					}
+		//				}
+
+		//				// end of measurment
+		//				tEnd = micros();
+
+		//				fprintf(stderr, "%s: MEAS2: 500 times %u size %u - Time: %llu - Last val: %f\n", WASM_Name, LVars.size(), uCompiledSize, tEnd - tStart, val);
+
+		//				// MEASUREMENT 3 - using Gauge API
+
+		//				// start of measurement
+		//				tStart = micros();
+
+		//				// perform action
+		//				for (auto& lv : LVars)
+		//				{
+		//					varID = check_named_variable("A32NX_EFIS_L_OPTION");
+
+		//					for (int i = 0; i < 500; i++)
+		//					{
+		//						val = get_named_variable_value(varID);
+		//					}
+		//				}
+
+		//				// end of measurment
+		//				tEnd = micros();
+
+		//				fprintf(stderr, "%s: MEAS3: 500 times %u varID %i - Time: %llu - Last val: %f\n", WASM_Name, LVars.size(), varID, tEnd - tStart, val);
+		//			}
+
+		//			break;
+		//		}
+		//		default:
+		//			fprintf(stderr, "%s: SIMCONNECT_RECV_ID_EVENT - Event: UNKNOWN %u\n", WASM_Name, evt->uEventID);
+		//			break; // end case default
+		//	}
+
+		//	break; // end case SIMCONNECT_RECV_ID_EVENT
+		//}
+
+		//case SIMCONNECT_RECV_ID_EVENT_FILENAME:
+		//{
+		//	SIMCONNECT_RECV_EVENT_FILENAME* recv_data = (SIMCONNECT_RECV_EVENT_FILENAME*)pData;
+		//	fprintf(stderr, "%s: SIMCONNECT_RECV_ID_EVENT_FILENAME - Event: %u - File: %s\n", WASM_Name, recv_data->uEventID, recv_data->szFileName);
+
+		//	break; // end case SIMCONNECT_RECV_ID_EVENT_FILENAME
+		//}
 
 		case SIMCONNECT_RECV_ID_CLIENT_DATA:
 		{
@@ -179,7 +295,7 @@ void CALLBACK MyDispatchProc(SIMCONNECT_RECV* pData, DWORD cbData, void* pContex
 				case CMD: // "HW.Set." or "HW.Reg." received
 				{
 					char* sCmd = (char*)&recv_data->dwData;
-					fprintf(stderr, "%s: MyDispatchProc > SIMCONNECT_RECV_ID_CLIENT_DATA - CMD \"%s\"\n", WASM_Name, sCmd);
+					fprintf(stderr, "%s: SIMCONNECT_RECV_ID_CLIENT_DATA - CMD \"%s\"\n", WASM_Name, sCmd);
 
 					// "HW.Set."
 					if (strncmp(sCmd, CMD_Set, strlen(CMD_Set)) == 0)
@@ -199,7 +315,7 @@ void CALLBACK MyDispatchProc(SIMCONNECT_RECV* pData, DWORD cbData, void* pContex
 				}
 
 				default:
-					fprintf(stderr, "%s: MyDispatchProc > SIMCONNECT_RECV_ID_CLIENT_DATA - UNKNOWN request %u\n", WASM_Name, recv_data->dwRequestID);
+					fprintf(stderr, "%s: SIMCONNECT_RECV_ID_CLIENT_DATA - UNKNOWN request %u\n", WASM_Name, recv_data->dwRequestID);
 					break; // end case default
 			}
 
@@ -297,6 +413,27 @@ extern "C" MSFS_CALLBACK void module_init(void)
 		fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"Frame\" failed.\n", WASM_Name);
 		return;
 	}
+
+	//hr = SimConnect_SubscribeToSystemEvent(g_hSimConnect, EVENT_1SEC, "1sec");
+	//if (hr != S_OK)
+	//{
+	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"1sec\" failed.\n", WASM_Name);
+	//	return;
+	//}
+
+	//hr = SimConnect_SubscribeToSystemEvent(g_hSimConnect, EVENT_AIRCRAFTLOADED, "AircraftLoaded");
+	//if (hr != S_OK)
+	//{
+	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"AircraftLoaded\" failed.\n", WASM_Name);
+	//	return;
+	//}
+
+	//hr = SimConnect_SubscribeToSystemEvent(g_hSimConnect, EVENT_FLIGHTLOADED, "FlightLoaded");
+	//if (hr != S_OK)
+	//{
+	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"FlightLoaded\" failed.\n", WASM_Name);
+	//	return;
+	//}
 
 	hr = SimConnect_CallDispatch(g_hSimConnect, MyDispatchProc, NULL);
 	if (hr != S_OK)
