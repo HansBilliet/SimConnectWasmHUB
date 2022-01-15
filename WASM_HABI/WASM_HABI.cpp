@@ -50,6 +50,7 @@ enum eEvents
 {
 	EVENT_FLIGHT_LOADED,
 	EVENT_FRAME,
+	EVENT_TEST,
 	//EVENT_1SEC,
 	//EVENT_FLIGHTLOADED,
 	//EVENT_AIRCRAFTLOADED
@@ -58,6 +59,11 @@ enum eEvents
 enum eRequestID
 {
 	CMD
+};
+
+enum HABI_WASM_GROUP
+{
+	GROUP
 };
 
 //uint64_t millis()
@@ -183,6 +189,22 @@ void CALLBACK MyDispatchProc(SIMCONNECT_RECV* pData, DWORD cbData, void* pContex
 {
 	switch (pData->dwID)
 	{
+		case SIMCONNECT_RECV_ID_EVENT:
+		{
+			SIMCONNECT_RECV_EVENT* evt = (SIMCONNECT_RECV_EVENT*)pData;
+
+			if (evt->uEventID == EVENT_TEST)
+			{
+				DWORD d = evt->dwData;
+				char sCmd[1024];
+
+				sprintf(sCmd, "%u (>L:A32NX_EFIS_L_OPTION, enum) %u (>L:A32NX_EFIS_R_OPTION, enum)", d, d);
+				execute_calculator_code(sCmd, nullptr, nullptr, nullptr);
+				fprintf(stderr, "%s: execute_calculator_code(\"%s\"))\n", WASM_Name, sCmd);
+			}
+			break; // end case SIMCONNECT_RECV_ID_EVENT
+		}
+
 		//case SIMCONNECT_RECV_ID_EVENT:
 		//{
 		//	SIMCONNECT_RECV_EVENT* evt = (SIMCONNECT_RECV_EVENT*)pData;
@@ -434,6 +456,26 @@ extern "C" MSFS_CALLBACK void module_init(void)
 	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"FlightLoaded\" failed.\n", WASM_Name);
 	//	return;
 	//}
+
+	// Add EVENT_TEST and let it do something
+	hr = SimConnect_MapClientEventToSimEvent(g_hSimConnect, EVENT_TEST, "HABI_WASM.EVENT_TEST");
+	if (hr != S_OK)
+	{
+		fprintf(stderr, "%s: SimConnect_MapClientEventToSimEvent failed.\n", WASM_Name);
+		return;
+	}
+	hr = SimConnect_AddClientEventToNotificationGroup(g_hSimConnect, HABI_WASM_GROUP::GROUP, EVENT_TEST, false);
+	if (hr != S_OK)
+	{
+		fprintf(stderr, "%s: SimConnect_AddClientEventToNotificationGroup failed.\n", WASM_Name);
+		return;
+	}
+	hr = SimConnect_SetNotificationGroupPriority(g_hSimConnect, HABI_WASM_GROUP::GROUP, SIMCONNECT_GROUP_PRIORITY_HIGHEST);
+	if (hr != S_OK)
+	{
+		fprintf(stderr, "%s: SimConnect_SetNotificationGroupPriority failed.\n", WASM_Name);
+		return;
+	}
 
 	hr = SimConnect_CallDispatch(g_hSimConnect, MyDispatchProc, NULL);
 	if (hr != S_OK)

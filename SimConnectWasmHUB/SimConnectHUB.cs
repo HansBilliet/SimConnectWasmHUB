@@ -415,19 +415,11 @@ namespace SimConnectWasmHUB
                     // Register a K-event
                     try
                     {
-                        if (v.sName.IndexOf('.') == -1)
-                        {
-                            v.SetID(VarData.AUTO_ID, VarData.NOTUSED_ID);
-                            // Registration of a SimConnect Event
-                            _oSimConnect.MapClientEventToSimEvent((EVENT_ID)v.uDefineID, v.sName);
-                            //_oSimConnect.TransmitClientEvent(0, EVENT_ID.MY_EVENT, 4, (EVENT_ID)SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-                            LogResult?.Invoke(this, $"{v} SimConnect Event added and registered");
-                        }
-                        else
-                        {
-                            // Registration of a Custom Event (no registration is needed as we are using execute_)
-                            LogResult?.Invoke(this, $"{v} Custom Event added");
-                        }
+                        v.SetID(VarData.AUTO_ID, VarData.NOTUSED_ID);
+                        // Registration of a SimConnect Event
+                        _oSimConnect.MapClientEventToSimEvent((EVENT_ID)v.uDefineID, v.sName);
+                        //_oSimConnect.TransmitClientEvent(0, EVENT_ID.MY_EVENT, 4, (EVENT_ID)SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                        LogResult?.Invoke(this, $"{v} SimConnect Event added and registered");
                     }
                     catch (Exception ex)
                     {
@@ -568,10 +560,9 @@ namespace SimConnectWasmHUB
                 case 'A':
                     try
                     {
-//                        vInList.oValue = Cast(dValue, vInList.oValue.GetType());
+                        vInList.oValue = Cast(dValue, vInList.oValue.GetType());
 
-//                        _oSimConnect.SetDataOnSimObject((SIMCONNECT_DEFINITION_ID)vInList.uDefineID, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, vInList.oValue);
-                        _oSimConnect.SetDataOnSimObject((SIMCONNECT_DEFINITION_ID)vInList.uDefineID, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, dValue);
+                        _oSimConnect.SetDataOnSimObject((SIMCONNECT_DEFINITION_ID)vInList.uDefineID, 0, SIMCONNECT_DATA_SET_FLAG.DEFAULT, vInList.oValue);
 
                         LogResult?.Invoke(this, $"{vInList} SimVar value set to {sValue}");
                     }
@@ -587,28 +578,19 @@ namespace SimConnectWasmHUB
                     break;
 
                 case 'K':
-                    if (v.sName.IndexOf('.') == -1)
-                        try
-                        {
-                            _oSimConnect.TransmitClientEvent(
-                                0, 
-                                (EVENT_ID)v.uDefineID, 
-                                (uint)dValue, 
-                                (EVENT_ID)SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST, 
-                                SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-                            LogResult?.Invoke(this, $"{vInList} SimConnect Event triggered with {(sValue == "" ? "no" : "")} value {sValue}");
-                        }
-                        catch (Exception ex)
-                        {
-                            LogResult?.Invoke(this, $"SetValue SimConnect Event Error: {ex.Message}");
-                        }
-                    else
+                    try
                     {
-                        if (sValue == "")
-                            SendWASMCmd($"HW.Set.(>K:{v.sName})");
-                        else
-                            SendWASMCmd($"HW.Set.{sValue} (>K:{v.sName})");
-                        LogResult?.Invoke(this, $"{vInList} Custom Event triggered with {(sValue == "" ? "no" : "")} value {sValue}");
+                        _oSimConnect.TransmitClientEvent(
+                            0, 
+                            (EVENT_ID)vInList.uDefineID, 
+                            (uint)dValue, 
+                            (EVENT_ID)SimConnect.SIMCONNECT_GROUP_PRIORITY_HIGHEST, 
+                            SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
+                        LogResult?.Invoke(this, $"{vInList} SimConnect Event triggered with {(sValue == "" ? "no" : "")} value {sValue}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogResult?.Invoke(this, $"SetValue SimConnect Event Error: {ex.Message}");
                     }
                     break;
             }
