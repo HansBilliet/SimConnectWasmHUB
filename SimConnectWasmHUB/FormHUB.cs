@@ -12,6 +12,7 @@ namespace SimConnectWasmHUB
             InitializeComponent();
 
             _SimConnectHUB.LogResult += OnAddResult;
+            _SimConnectHUB.ExeResult += OnExeResult;
         }
 
         protected override void WndProc(ref Message m)
@@ -42,6 +43,13 @@ namespace SimConnectWasmHUB
             if (textResult.Text != "")
                 textResult.AppendText(Environment.NewLine);
             textResult.AppendText(sResult);
+        }
+
+        private void OnExeResult(object sender, SimConnectHUB.Result ExeResult)
+        {
+            textBoxExecCalcCodeFloat.Text = ExeResult.exeF.ToString("0.000");
+            textBoxExecCalcCodeInt.Text = ExeResult.exeI.ToString();
+            textBoxExecCalcCodeString.Text = ExeResult.exeS;
         }
 
         private void buttonConnect_Click(object sender, EventArgs e)
@@ -102,6 +110,16 @@ namespace SimConnectWasmHUB
                 return;
 
             _SimConnectHUB?.SetVariable(sVar, sVal);
+        }
+
+        private void buttonExecCalcCodeSend_Click(object sender, EventArgs e)
+        {
+            string sExe = textBoxExecCalcCode.Text;
+
+            if (sExe == "")
+                return;
+
+            _SimConnectHUB?.ExecuteCalculatorCode(sExe);
         }
     }
 }

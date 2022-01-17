@@ -21,6 +21,7 @@ namespace SimConnectWasmHUB
 
         // Event handler to show results in textbox
         public event EventHandler<string> LogResult = null;
+        public event EventHandler<Result> ExeResult = null;
 
         // List of registered variables
         private List<VarData> Vars = new List<VarData>();
@@ -29,13 +30,15 @@ namespace SimConnectWasmHUB
         private const string CLIENT_DATA_NAME_LVARS = "HABI_WASM.LVars";
         private const string CLIENT_DATA_NAME_COMMAND = "HABI_WASM.Command";
         private const string CLIENT_DATA_NAME_ACKNOWLEDGE = "HABI_WASM.Acknowledge";
+        private const string CLIENT_DATA_NAME_RESULT = "HABI_WASM.Result";
 
         // Client Area Data ID's
         private enum CLIENT_DATA_ID
         {
             LVARS = 0,
             CMD = 1,
-            ACK = 2
+            ACK = 2,
+            RESULT = 3
         }
 
         // Currently we are using fixed size strings of 256 characters
@@ -50,6 +53,16 @@ namespace SimConnectWasmHUB
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
             public String str;
             public float value;
+        };
+
+        // Structure to get the result of execute_calculator_code
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
+        public struct Result
+        {
+            public double exeF;
+            public Int32 exeI;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public String exeS;
         };
 
         // Currently we only work with strings with a fixed size of 256
@@ -69,13 +82,15 @@ namespace SimConnectWasmHUB
         private enum CLIENTDATA_DEFINITION_ID
         {
             CMD,
-            ACK
+            ACK,
+            RESULT
         }
 
         // Client Data Area RequestID's for receiving Acknowledge and LVARs
         private enum CLIENTDATA_REQUEST_ID
         {
             ACK,
+            RESULT,
             START_LVAR
         }
 
@@ -251,6 +266,20 @@ namespace SimConnectWasmHUB
                     LogResult?.Invoke(this, $"SimConnect_OnRecvClientData Error: {ex.Message}");
                 }
             }
+            else if (data.dwRequestID == (uint)CLIENTDATA_REQUEST_ID.RESULT)
+            {
+                try
+                {
+                    var exeResult = (Result)(data.dwData[0]);
+                    Debug.WriteLine($"----> Result: float: {exeResult.exeF}, int: {exeResult.exeI}, string: {exeResult.exeS}");
+
+                    ExeResult?.Invoke(this, exeResult);
+                }
+                catch (Exception ex)
+                {
+                    LogResult?.Invoke(this, $"SimConnect_OnRecvClientData Error: {ex.Message}");
+                }
+            }
             else if (data.dwRequestID >= (uint)CLIENTDATA_REQUEST_ID.START_LVAR)
             {
                 VarData vInList = Vars.Find(x => x.cType == 'L' && x.uDefineID == data.dwDefineID);
@@ -289,6 +318,19 @@ namespace SimConnectWasmHUB
                     CLIENT_DATA_ID.ACK,
                     CLIENTDATA_REQUEST_ID.ACK,
                     CLIENTDATA_DEFINITION_ID.ACK,
+                    SIMCONNECT_CLIENT_DATA_PERIOD.ON_SET,
+                    SIMCONNECT_CLIENT_DATA_REQUEST_FLAG.DEFAULT,
+                    0, 0, 0);
+
+                // register Client Data (for RESULT)
+                _oSimConnect.MapClientDataNameToID(CLIENT_DATA_NAME_RESULT, CLIENT_DATA_ID.RESULT);
+                _oSimConnect.CreateClientData(CLIENT_DATA_ID.RESULT, (uint)Marshal.SizeOf<Result>(), SIMCONNECT_CREATE_CLIENT_DATA_FLAG.DEFAULT);
+                _oSimConnect.AddToClientDataDefinition(CLIENTDATA_DEFINITION_ID.RESULT, 0, (uint)Marshal.SizeOf<Result>(), 0, 0);
+                _oSimConnect.RegisterStruct<SIMCONNECT_RECV_CLIENT_DATA, Result>(CLIENTDATA_DEFINITION_ID.RESULT);
+                _oSimConnect.RequestClientData(
+                    CLIENT_DATA_ID.RESULT,
+                    CLIENTDATA_REQUEST_ID.RESULT,
+                    CLIENTDATA_DEFINITION_ID.RESULT,
                     SIMCONNECT_CLIENT_DATA_PERIOD.ON_SET,
                     SIMCONNECT_CLIENT_DATA_REQUEST_FLAG.DEFAULT,
                     0, 0, 0);
@@ -596,6 +638,11 @@ namespace SimConnectWasmHUB
             }
 
             return true;
+        }
+
+        public void ExecuteCalculatorCode(string sExe)
+        {
+            SendWASMCmd($"HW.Exe.{sExe}");
         }
     }
 }

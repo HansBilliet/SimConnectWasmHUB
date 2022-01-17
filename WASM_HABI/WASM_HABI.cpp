@@ -27,8 +27,12 @@ const SIMCONNECT_CLIENT_DATA_ID CLIENT_DATA_ID_COMMAND = 1;
 const char* CLIENT_DATA_NAME_ACKNOWLEDGE = "HABI_WASM.Acknowledge";
 const SIMCONNECT_CLIENT_DATA_ID CLIENT_DATA_ID_ACKNOWLEDGE = 2;
 
+const char* CLIENT_DATA_NAME_RESULT = "HABI_WASM.Result";
+const SIMCONNECT_CLIENT_DATA_ID CLIENT_DATA_ID_RESULT = 3;
+
 const SIMCONNECT_CLIENT_DATA_DEFINITION_ID DATA_DEFINITION_ID_STRING_COMMAND = 0;
 const SIMCONNECT_CLIENT_DATA_DEFINITION_ID DATA_DEFINITION_ID_ACKNOWLEDGE = 1;
+const SIMCONNECT_CLIENT_DATA_DEFINITION_ID DATA_DEFINITION_ID_RESULT = 2;
 const UINT16 START_LVAR_DEFINITION = 10;
 
 const int MESSAGE_SIZE = 256;
@@ -37,6 +41,7 @@ HANDLE g_hSimConnect;
 
 const char* CMD_Set = "HW.Set.";
 const char* CMD_Reg = "HW.Reg.";
+const char* CMD_Exe = "HW.Exe.";
 
 struct LVar {
 	UINT16 ID;
@@ -45,6 +50,12 @@ struct LVar {
 	float Value;
 };
 vector<LVar> LVars;
+
+struct Result {
+	FLOAT64 exeF;
+	SINT32 exeI;
+	char exeS[256];
+};
 
 enum eEvents
 {
@@ -106,6 +117,33 @@ bool FindLVar(char* sLVar, LVar *pLVar)
 	}
 
 	return false;
+}
+
+void ExecuteCalculatorCode(char* sExe)
+{
+	Result exeRes;
+	exeRes.exeS[0] = '\0';
+	PCSTRINGZ ps;
+
+	execute_calculator_code(sExe, &exeRes.exeF, &exeRes.exeI, &ps);
+	strncat(exeRes.exeS, ps, 255);
+
+	fprintf(stderr, "%s: ExecuteCalulculatorCode: float %f, int %i, string %s", WASM_Name, exeRes.exeF, exeRes.exeI, exeRes.exeS);
+
+	HRESULT hr = SimConnect_SetClientData(
+		g_hSimConnect,
+		CLIENT_DATA_ID_RESULT,
+		DATA_DEFINITION_ID_RESULT,
+		SIMCONNECT_CLIENT_DATA_SET_FLAG_DEFAULT,
+		0,
+		sizeof(exeRes),
+		&exeRes
+	);
+
+	if (hr != S_OK)
+	{
+		fprintf(stderr, "%s: Error on Setting Client Data RESULT", WASM_Name);
+	}
 }
 
 void RegisterLVar(char* sLVar)
@@ -179,7 +217,7 @@ void ReadLVars()
 
 			if (hr != S_OK)
 			{
-				fprintf(stderr, "%s: Error on Setting Client Data. %u, SimVar: %s (ID: %u)", WASM_Name);
+				fprintf(stderr, "%s: Error on Setting Client Data LVARS for LVAR %s.", WASM_Name, lv.Name);
 			}
 		}
 	}
@@ -205,109 +243,6 @@ void CALLBACK MyDispatchProc(SIMCONNECT_RECV* pData, DWORD cbData, void* pContex
 			break; // end case SIMCONNECT_RECV_ID_EVENT
 		}
 
-		//case SIMCONNECT_RECV_ID_EVENT:
-		//{
-		//	SIMCONNECT_RECV_EVENT* evt = (SIMCONNECT_RECV_EVENT*)pData;
-
-		//	switch (evt->uEventID)
-		//	{
-		//		case EVENT_1SEC:
-		//		{
-		//			// L:A32NX_EFIS_L_OPTION, enum
-		//			// L:A32NX_EFIS_R_OPTION, enum
-		//			// K:FUELSYSTEM_PUMP_TOGGLE
-		//			// K:A32NX.FCU_HDG_INC
-
-		//			uint64_t tStart;
-		//			uint64_t tEnd;
-		//			FLOAT64 val = 0;
-		//			ID varID;
-		//			PCSTRINGZ sCompiled;
-		//			UINT32 uCompiledSize;
-
-		//			if (LVars.size() != 0)
-		//			{
-
-		//				// MEASUREMENT 1 - using execute_calculator_code
-
-		//				// start of measurement
-		//				tStart = micros();
-
-		//				// perform action
-		//				for (auto& lv : LVars)
-		//				{
-		//					for (int i = 0; i < 500; i++)
-		//					{
-		//						execute_calculator_code("(L:A32NX_EFIS_L_OPTION)", &val, (SINT32*)0, (PCSTRINGZ*)0);
-		//					}
-		//				}
-
-		//				// end of measurment
-		//				tEnd = micros();
-
-		//				fprintf(stderr, "%s: MEAS1: 500 times %u variables - Time: %llu - Last val: %f\n", WASM_Name, LVars.size(), tEnd - tStart, val);
-
-		//				// MEASUREMENT 2 - using pre-compiled calculator code
-
-		//				// start of measurement
-		//				tStart = micros();
-
-		//				// perform action
-		//				for (auto& lv : LVars)
-		//				{
-		//					gauge_calculator_code_precompile(&sCompiled, &uCompiledSize, "(L:A32NX_EFIS_L_OPTION)");
-
-		//					for (int i = 0; i < 500; i++)
-		//					{
-		//						execute_calculator_code(sCompiled, &val, (SINT32*)0, (PCSTRINGZ*)0);
-		//					}
-		//				}
-
-		//				// end of measurment
-		//				tEnd = micros();
-
-		//				fprintf(stderr, "%s: MEAS2: 500 times %u size %u - Time: %llu - Last val: %f\n", WASM_Name, LVars.size(), uCompiledSize, tEnd - tStart, val);
-
-		//				// MEASUREMENT 3 - using Gauge API
-
-		//				// start of measurement
-		//				tStart = micros();
-
-		//				// perform action
-		//				for (auto& lv : LVars)
-		//				{
-		//					varID = check_named_variable("A32NX_EFIS_L_OPTION");
-
-		//					for (int i = 0; i < 500; i++)
-		//					{
-		//						val = get_named_variable_value(varID);
-		//					}
-		//				}
-
-		//				// end of measurment
-		//				tEnd = micros();
-
-		//				fprintf(stderr, "%s: MEAS3: 500 times %u varID %i - Time: %llu - Last val: %f\n", WASM_Name, LVars.size(), varID, tEnd - tStart, val);
-		//			}
-
-		//			break;
-		//		}
-		//		default:
-		//			fprintf(stderr, "%s: SIMCONNECT_RECV_ID_EVENT - Event: UNKNOWN %u\n", WASM_Name, evt->uEventID);
-		//			break; // end case default
-		//	}
-
-		//	break; // end case SIMCONNECT_RECV_ID_EVENT
-		//}
-
-		//case SIMCONNECT_RECV_ID_EVENT_FILENAME:
-		//{
-		//	SIMCONNECT_RECV_EVENT_FILENAME* recv_data = (SIMCONNECT_RECV_EVENT_FILENAME*)pData;
-		//	fprintf(stderr, "%s: SIMCONNECT_RECV_ID_EVENT_FILENAME - Event: %u - File: %s\n", WASM_Name, recv_data->uEventID, recv_data->szFileName);
-
-		//	break; // end case SIMCONNECT_RECV_ID_EVENT_FILENAME
-		//}
-
 		case SIMCONNECT_RECV_ID_CLIENT_DATA:
 		{
 			SIMCONNECT_RECV_CLIENT_DATA* recv_data = (SIMCONNECT_RECV_CLIENT_DATA*)pData;
@@ -330,6 +265,13 @@ void CALLBACK MyDispatchProc(SIMCONNECT_RECV* pData, DWORD cbData, void* pContex
 					if (strncmp(sCmd, CMD_Reg, strlen(CMD_Reg)) == 0)
 					{
 						RegisterLVar(&sCmd[strlen(CMD_Reg)]);
+						break;
+					}
+
+					// "HW.Exe."
+					if (strncmp(sCmd, CMD_Exe, strlen(CMD_Exe)) == 0)
+					{
+						ExecuteCalculatorCode(&sCmd[strlen(CMD_Reg)]);
 						break;
 					}
 
@@ -387,6 +329,14 @@ void RegisterClientDataArea()
 	}
 	SimConnect_CreateClientData(g_hSimConnect, CLIENT_DATA_ID_ACKNOWLEDGE, sizeof(LVar), SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
 
+	// Create Client Data Area for result of execute_calculator_code
+	hr = SimConnect_MapClientDataNameToID(g_hSimConnect, CLIENT_DATA_NAME_RESULT, CLIENT_DATA_ID_RESULT);
+	if (hr != S_OK) {
+		fprintf(stderr, "%s: Error creating Client Data Area %s. %u", WASM_Name, CLIENT_DATA_NAME_RESULT, hr);
+		return;
+	}
+	SimConnect_CreateClientData(g_hSimConnect, CLIENT_DATA_ID_RESULT, sizeof(Result), SIMCONNECT_CREATE_CLIENT_DATA_FLAG_DEFAULT);
+
 	// This Data Definition will be used with the COMMAND Client Area Data
 	hr = SimConnect_AddToClientDataDefinition(
 		g_hSimConnect,
@@ -402,6 +352,14 @@ void RegisterClientDataArea()
 		0,				// Offset
 		sizeof(LVar)	// Size
 		);
+
+	// This Data Definition will be used with the RESULT Client Area Data
+	hr = SimConnect_AddToClientDataDefinition(
+		g_hSimConnect,
+		DATA_DEFINITION_ID_RESULT,
+		0,				// Offset
+		sizeof(Result)	// Size
+	);
 
 	// We immediately start to listen to commands coming from the client
 	SimConnect_RequestClientData(
@@ -435,27 +393,6 @@ extern "C" MSFS_CALLBACK void module_init(void)
 		fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"Frame\" failed.\n", WASM_Name);
 		return;
 	}
-
-	//hr = SimConnect_SubscribeToSystemEvent(g_hSimConnect, EVENT_1SEC, "1sec");
-	//if (hr != S_OK)
-	//{
-	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"1sec\" failed.\n", WASM_Name);
-	//	return;
-	//}
-
-	//hr = SimConnect_SubscribeToSystemEvent(g_hSimConnect, EVENT_AIRCRAFTLOADED, "AircraftLoaded");
-	//if (hr != S_OK)
-	//{
-	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"AircraftLoaded\" failed.\n", WASM_Name);
-	//	return;
-	//}
-
-	//hr = SimConnect_SubscribeToSystemEvent(g_hSimConnect, EVENT_FLIGHTLOADED, "FlightLoaded");
-	//if (hr != S_OK)
-	//{
-	//	fprintf(stderr, "%s: SimConnect_SubsribeToSystemEvent \"FlightLoaded\" failed.\n", WASM_Name);
-	//	return;
-	//}
 
 	// Add EVENT_TEST and let it do something
 	hr = SimConnect_MapClientEventToSimEvent(g_hSimConnect, EVENT_TEST, "HABI_WASM.EVENT_TEST");
